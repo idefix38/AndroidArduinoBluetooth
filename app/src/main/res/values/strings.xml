@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Mon application</string>
+    <string name="welcom_msg">Bienvenue dans mon application</string>
+    <string name="title_activity_basic">BasicActivity</string>
+    <string name="title_activity_configbluetooth">configbluetooth</string>
+    <string name="allumer">Allumer</string>
+    <string name="eteindre">Eteindre</string>
+</resources>
