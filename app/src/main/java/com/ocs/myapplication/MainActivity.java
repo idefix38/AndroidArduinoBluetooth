@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -36,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private PeripheriqueBluetooth arduino =null; // stock le péripherique choisit
     private Button btnAllumer= null;
     private Button btnEteindre =null;
+    private Button btnBluetooth = null;
     private TextView temp = null;
     private TextView humid = null;
     private BluetoothAdapter blueAdapter = null;
@@ -65,9 +67,10 @@ public class MainActivity extends AppCompatActivity {
         Log.d("DEBUG","Démarrage de l'application");
 
         // Récupère les composants du layout
-        lvPeripheriques = findViewById(R.id.lvPeripheriques);
+        //lvPeripheriques = findViewById(R.id.lvPeripheriques);
         btnAllumer = findViewById(R.id.btnAllumer);
         btnEteindre = findViewById(R.id.btnEteindre);
+        btnBluetooth = findViewById(R.id.btnBluetooth);
         temp = findViewById(R.id.temp);
         humid = findViewById(R.id.humid);
 
@@ -86,6 +89,16 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // On a clické sur etteindre
                 arduino.envoyer("off\r\n");
+            }
+        });
+
+        btnBluetooth.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // On a clické sur etteindre
+                Intent configBT = new Intent(getApplicationContext(), configBluetooth.class);
+                startActivity(configBT);
+                finish();
             }
         });
 
@@ -111,72 +124,40 @@ public class MainActivity extends AppCompatActivity {
             }
 
 
+            // Recupere le nom du périphérique choisit par l'utilisateur
+            // Utilise le nom DSS TECH HC-05 par défaut si aucun périphéruqe n'a été choisit
+            SharedPreferences settings = getApplicationContext().getSharedPreferences("ARDUINO", Context.MODE_PRIVATE);
+            String arduinoName = settings.getString("ARDUINO","");
+
             // Recherche des périphériques connus
             Set<BluetoothDevice> devices = bluetoothAdapter.getBondedDevices();
-            peripheriques = new ArrayList<PeripheriqueBluetooth>();
 
-            // Boucle sur la liste des BluetoothDevice pour créer une liste de d'objets Peripherique
+            boolean peripheriqueTrouve = false;
+
+            // Boucle sur la liste des BluetoothDevice
             for (BluetoothDevice blueDevice : devices) {
-                PeripheriqueBluetooth p = new PeripheriqueBluetooth(blueDevice,handler);
-                peripheriques.add(p);
-            }
-            // Création de l'adapteur pour la listview
-            PeripheriqueListViewAdaptater adaptater = new PeripheriqueListViewAdaptater(peripheriques);
-            lvPeripheriques.setAdapter(adaptater);
 
-
-        }
-    }
-
-    private class PeripheriqueListViewAdaptater extends BaseAdapter {
-        private List<PeripheriqueBluetooth> list;
-
-        //Constructeur
-        public PeripheriqueListViewAdaptater( List<PeripheriqueBluetooth> list) {
-            this.list = list;
-        }
-
-        @Override
-        public int getCount() {
-            return list.size();
-        }
-
-        @Override
-        public PeripheriqueBluetooth getItem(int position) {
-            return list.get(position);
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        /**
-         * Retourne la vue d'un peripherique
-         * @param position
-         * @param convertView
-         * @param parent
-         * @return
-         */
-        @Override
-        public View getView(final int position, View convertView, ViewGroup parent) {
-            View view= getLayoutInflater().inflate(R.layout.listeperipheriqueslayout,null);
-            // Texte et bouton de la vue listeperipheriqueslayout
-            TextView name = view.findViewById(R.id.txtPeriphName);
-            Button button = view.findViewById(R.id.btnConnecter);
-            button.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    // On click sur le bouton connecter
-                    arduino = list.get(position);
-                    arduino.connecter();
-                    Toast.makeText(getApplicationContext(), "Connexion a " + arduino.getNom(), Toast.LENGTH_SHORT).show();
+                // Si le péripherique correspond au peripherique choisit par l'utilisateur ou au peripheruq epar défaut,
+                // on se connecte
+                if (arduinoName.compareTo(blueDevice.getName())==0)
+                {
+                    PeripheriqueBluetooth p = new PeripheriqueBluetooth(blueDevice, handler);
+                    peripheriqueTrouve = true;
+                    p.connecter();
+                    Toast.makeText(getApplicationContext(), "Connexion a " + p.getNom(), Toast.LENGTH_SHORT).show();
+                    break; // Sort de la boucle for
                 }
-            });
-            name.setText(list.get(position).getNom());
-            return view;
+            }
+
+            // Si aucun péripehrique ne correpond on affiche un message d'erreur
+            if (!peripheriqueTrouve) {
+                Toast.makeText(getApplicationContext(), "Aucun périphérique compatible n'a été trouvé. ", Toast.LENGTH_SHORT).show();
+            }
+
+
         }
     }
+
 
 
 
